@@ -1,4 +1,3 @@
-![logo][logo]
 
 ## 摘要
 
@@ -16,8 +15,8 @@
 
 ### 1 前言
 
-为了有利于项目维护、增强代码可读性、提升 Code Review 效率以及规范团队安卓开发，故提出以下安卓开发规范，该规范结合本人多年的开发经验并吸取多家之精华，可谓是本人的呕心沥血之作，称其为当前最完善的安卓开发规范一点也不为过，如有更好建议，欢迎到 GitHub 提 issue，原文地址：**[Android 开发规范（完结版）][Android 开发规范（完结版）]**。相关 Demo，可以查看我的 Android 开发工具类集合项目：**[Android 开发人员不得不收集的代码][Android 开发人员不得不收集的代码]**。后续可能会根据该规范出一个 CheckStyle 插件来检查是否规范，当然也支持在 CI 上运行。
-
+为了有利于项目维护、增强代码可读性、提升 Code Review 效率以及规范团队安卓开发，故提出以下安卓开发规范。
+目前项目统一使用 kotlin。如果新人开始使用了Java，在两周内转成kotlin
 
 ### 2 AS 规范
 
@@ -30,6 +29,7 @@
 5. Android 开发者工具可以参考这里：**[Android 开发者工具][Android 开发者工具]**；
 
 
+
 ### 3 命名规范
 
 代码中的命名严禁使用拼音与英文混合的方式，更不允许直接使用中文的方式。正确的英文拼写和语法可以让阅读者易于理解，避免歧义。
@@ -38,127 +38,42 @@
 
 #### 3.1 包名
 
-包名全部小写，连续的单词只是简单地连接起来，不使用下划线，采用反域名命名规则，全部使用小写字母。一级包名是顶级域名，通常为 `com`、`edu`、`gov`、`net`、`org` 等，二级包名为公司名，三级包名根据应用进行命名，后面就是对包名的划分了，关于包名的划分，推荐采用 PBF（按功能分包 Package By Feature），一开始我们采用的也是 PBL（按层分包 Package By Layer），很坑爹。PBF 可能不是很好区分在哪个功能中，不过也比 PBL 要好找很多，且 PBF 与 PBL 相比较有如下优势：
+包名全部小写，连续的单词只是简单地连接起来，不使用下划线，采用反域名命名规则，全部使用小写字母。一级包名是顶级域名，通常为 `com`、`edu`、`gov`、`net`、`org` 等，二级包名为公司名，三级包名根据应用进行命名，后面就是对包名的划分了，关于包名的划分，推荐采用 PBF（按功能分包 Package By Feature）
 
-* package 内高内聚，package 间低耦合
+* package 内高内聚。package 间低耦合。哪块要添新功能，只改某一个 package 下的东西。PBF 的话 featureA 相关的所有东西都在 featureA 包，feature 内高内聚、高度模块化，不同 feature 之间低耦合，相关的东西都放在一起，还好找。
 
-    哪块要添新功能，只改某一个 package 下的东西。
+* package 有私有作用域（package-private scope）。你负责开发这块功能，这个目录下所有东西都是你的。PBF 的 package 有私有作用域，featureA 不应该访问 featureB 下的任何东西（如果非访问不可，那就说明接口定义有问题）。
 
-    PBL 降低了代码耦合，但带来了 package 耦合，要添新功能，需要改 model、dbHelper、view、service 等等，需要改动好几个 package 下的代码，改动的地方越多，越容易产生新问题，不是吗？
+* 很容易删除功能。统计发现新功能没人用，这个版本那块功能得去掉。
+* 高度抽象。解决问题的一般方法是从抽象到具体，PBF 包名是对功能模块的抽象，包内的 class 是实现细节，符合从抽象到具体，而 PBL 弄反了。PBF 从确定 AppName 开始，根据功能模块划分 package，再考虑每块的具体实现细节。
+* 只通过 class 来分离逻辑代码。PBL 既分离 class 又分离 package，而 PBF 只通过 class 来分离逻辑代码。
+* package 的大小有意义了。PBL 中包的大小无限增长是合理的，因为功能越添越多，而 PBF 中包太大（包里 class 太多）表示这块需要重构（划分子包）。
 
-    PBF 的话 featureA 相关的所有东西都在 featureA 包，feature 内高内聚、高度模块化，不同 feature 之间低耦合，相关的东西都放在一起，还好找。
-
-* package 有私有作用域（package-private scope）
-
-    你负责开发这块功能，这个目录下所有东西都是你的。
-
-    PBL 的方式是把所有工具方法都放在 util 包下，小张开发新功能时候发现需要一个 xxUtil，但它又不是通用的，那应该放在哪里？没办法，按照分层原则，我们还得放在 util 包下，好像不太合适，但放在其它包更不合适，功能越来越多，util 类也越定义越多。后来小李负责开发一块功能时发现需要一个 xxUtil，同样不通用，去 util 包一看，怎么已经有了，而且还没法复用，只好放弃 xx 这个名字，改为 xxxUtil……，因为 PBL 的 package 没有私有作用域，每一个包都是 public（跨包方法调用是很平常的事情，每一个包对其它包来说都是可访问的）；如果是 PBF，小张的 xxUtil 自然放在 featureA 下，小李的 xxUtil 在 featureB 下，如果觉得 util 好像是通用的，就去 util 包看看要不要把工具方法添进 xxUtil, class 命名冲突没有了。
-
-    PBF 的 package 有私有作用域，featureA 不应该访问 featureB 下的任何东西（如果非访问不可，那就说明接口定义有问题）。
-
-* 很容易删除功能
-
-    统计发现新功能没人用，这个版本那块功能得去掉。
-
-    如果是 PBL，得从功能入口到整个业务流程把受到牵连的所有能删的代码和 class 都揪出来删掉，一不小心就完蛋。
-
-    如果是 PBF，好说，先删掉对应包，再删掉功能入口（删掉包后入口肯定报错了），完事。
-
-* 高度抽象
-
-    解决问题的一般方法是从抽象到具体，PBF 包名是对功能模块的抽象，包内的 class 是实现细节，符合从抽象到具体，而 PBL 弄反了。
-
-    PBF 从确定 AppName 开始，根据功能模块划分 package，再考虑每块的具体实现细节，而 PBL 从一开始就要考虑要不要 dao 层，要不要 com 层等等。
-
-* 只通过 class 来分离逻辑代码
-
-    PBL 既分离 class 又分离 package，而 PBF 只通过 class 来分离逻辑代码。
-
-    没有必要通过 package 分离，因为 PBL 中也可能出现尴尬的情况：
-
-    ```
-    ├── service
-            ├── MainService.java
-    ```
-
-    按照 PBL, service 包下的所有东西都是 Service，应该不需要 Service 后缀，但实际上通常为了方便，直接 import service 包，Service 后缀是为了避免引入的 class 和当前包下的 class 命名冲突，当然，不用后缀也可以，得写清楚包路径，比如 `new com.domain.service.MainService()`，麻烦；而 PBF 就很方便，无需 import，直接 `new MainService()` 即可。
-
-* package 的大小有意义了
-
-    PBL 中包的大小无限增长是合理的，因为功能越添越多，而 PBF 中包太大（包里 class 太多）表示这块需要重构（划分子包）。
-
-如要知道更多好处，可以查看这篇博文：**[Package by features, not layers][Package by features, not layers]**，当然，我们大谷歌也有相应的 Sample：**[todo-mvp][todo-mvp]**，其结构如下所示，很值得学习。
-
-```
-com
-└── example
-    └── android
-        └── architecture
-            └── blueprints
-                └── todoapp
-                    ├── BasePresenter.java
-                    ├── BaseView.java
-                    ├── addedittask
-                    │   ├── AddEditTaskActivity.java
-                    │   ├── AddEditTaskContract.java
-                    │   ├── AddEditTaskFragment.java
-                    │   └── AddEditTaskPresenter.java
-                    ├── data
-                    │   ├── Task.java
-                    │   └── source
-                    │       ├── TasksDataSource.java
-                    │       ├── TasksRepository.java
-                    │       ├── local
-                    │       │   ├── TasksDbHelper.java
-                    │       │   ├── TasksLocalDataSource.java
-                    │       │   └── TasksPersistenceContract.java
-                    │       └── remote
-                    │           └── TasksRemoteDataSource.java
-                    ├── statistics
-                    │   ├── StatisticsActivity.java
-                    │   ├── StatisticsContract.java
-                    │   ├── StatisticsFragment.java
-                    │   └── StatisticsPresenter.java
-                    ├── taskdetail
-                    │   ├── TaskDetailActivity.java
-                    │   ├── TaskDetailContract.java
-                    │   ├── TaskDetailFragment.java
-                    │   └── TaskDetailPresenter.java
-                    ├── tasks
-                    │   ├── ScrollChildSwipeRefreshLayout.java
-                    │   ├── TasksActivity.java
-                    │   ├── TasksContract.java
-                    │   ├── TasksFilterType.java
-                    │   ├── TasksFragment.java
-                    │   └── TasksPresenter.java
-                    └── util
-                        ├── ActivityUtils.java
-                        ├── EspressoIdlingResource.java
-                        └── SimpleCountingIdlingResource.java
-```
-
+如要知道更多好处，可以查看这篇博文：**[Package by features, not layers][Package by features, not layers]**，当然，我们大谷歌也有相应的 Sample：**[todo-mvp][todo-mvp]**。
 参考以上的代码结构，按功能分包具体可以这样做：
 
 ```
 com
 └── domain
     └── app
-        ├── App.java 定义 Application 类
-        ├── Config.java 定义配置数据（常量）
-        ├── base 基础组件
-        ├── custom_view 自定义视图
+        ├── App.kt定义 Application 类
+        ├── Config.kt 定义配置数据（常量）
+        ├── base 基础组件 BaseActivity/BaseAdapter等
+        ├── view 自定义视图 
         ├── data 数据处理
-        │   ├── DataManager.java 数据管理器，
+        │   ├── DataManager.kt 数据管理器，
         │   ├── local 来源于本地的数据，比如 SP，Database，File
-        │   ├── model 定义 model（数据结构以及 getter/setter、compareTo、equals 等等，不含复杂操作）
+        │   ├── model 定义 model（数据结构）
         │   └── remote 来源于远端的数据
         ├── feature 功能
         │   ├── feature0 功能 0
-        │   │   ├── feature0Activity.java
-        │   │   ├── feature0Fragment.java
-        │   │   ├── xxAdapter.java
+        │   │   ├── feature0Activity.kt
+        │   │   ├── feature0Fragment.kt
+        │   │   ├── xxAdapter.kt
+        │   │   ├── xxHelper.kt
         │   │   └── ... 其他 class
         │   └── ...其他功能
+        ├── helper 与feature相关的多个模块使用的辅助类
         ├── injection 依赖注入
         ├── util 工具类
         └── widget 小部件
@@ -171,7 +86,7 @@ com
 
 类名通常是名词或名词短语，接口名称有时可能是形容词或形容词短语。现在还没有特定的规则或行之有效的约定来命名注解类型。
 
-名词，采用大驼峰命名法，尽量避免缩写，除非该缩写是众所周知的， 比如 HTML、URL，如果类名称中包含单词缩写，则单词缩写的每个字母均应大写。
+尽量避免缩写，除非该缩写是众所周知的， 比如 HTML、URL，如果类名称中包含单词缩写，则单词缩写的每个字母均应大写。
 
 | 类                     | 描述                        | 例如                                       |
 | :-------------------- | :------------------------ | :--------------------------------------- |
@@ -200,7 +115,7 @@ com
 
 | 方法                          | 说明                                       |
 | :-------------------------- | ---------------------------------------- |
-| `initXX()`                  | 初始化相关方法，使用 init 为前缀标识，如初始化布局 `initView()` |
+| `initXX()`                  | 初始化相关方法，使用 init 为前缀标识 |
 | `isXX()`, `checkXX()`       | 方法返回值为 boolean 型的请使用 is/check 为前缀标识      |
 | `getXX()`                   | 返回某个值的方法，使用 get 为前缀标识                    |
 | `setXX()`                   | 设置某个属性值                                  |
@@ -246,41 +161,17 @@ static final String[] nonEmptyArray = {"these", "can", "change"};
 
 > 注意：所有的 VO（值对象）统一采用标准的 lowerCamelCase 风格编写，所有的 DTO（数据传输对象）就按照接口文档中定义的字段名编写。
 
-##### 3.5.1 scope（范围）
-
-非公有，非静态字段命名以 `m` 开头。
-
-静态字段命名以 `s` 开头。
-
-其他字段以小写字母开头。
-
-例如：
-
-```java
-public class MyClass {
-    public int publicField;
-    private static MyClass sSingleton;
-    int mPackagePrivate;
-    private int mPrivate;
-    protected int mProtected;
-}
-```
-
-使用 1 个字符前缀来表示作用范围，1 个字符的前缀必须小写，前缀后面是由表意性强的一个单词或多个单词组成的名字，而且每个单词的首写字母大写，其它字母小写，这样保证了对变量名能够进行正确的断句。
-
-
-##### 3.5.2 Type0（控件类型）
-
+##### 3.5.1 控件类型
 考虑到 Android 众多的 UI 控件，为避免控件和普通成员变量混淆以及更好地表达意思，所有用来表示控件的成员变量统一加上控件缩写作为前缀（具体见附录 [UI 控件缩写表](#ui-控件缩写表)）。
 
-例如：`mIvAvatar`、`rvBooks`、`flContainer`。
+例如：`ivAvatar`、`rvBooks`、`flContainer`。
 
 
-##### 3.5.3 VariableName（变量名）
+##### 3.5.2 VariableName（变量名）
 
 变量名中可能会出现量词，我们需要创建统一的量词，它们更容易理解，也更容易搜索。
 
-例如：`mFirstBook`、`mPreBook`、`curBook`。
+例如：`firstBook`、`preBook`、`curBook`。
 
 | 量词列表    | 量词后缀说明     |
 | ------- | ---------- |
@@ -291,7 +182,7 @@ public class MyClass {
 | `Cur`   | 一组变量中的当前变量 |
 
 
-##### 3.5.4 Type1（数据类型）
+##### 3.5.3 集合
 
 对于表示集合或者数组的非常量字段名，我们可以添加后缀来增强字段的可读性，比如：
 
@@ -301,7 +192,7 @@ public class MyClass {
 
 例如：`mIvAvatarList`、`userArr`、`firstNameSet`。
 
-> 注意：如果数据类型不确定的话，比如表示的是很多书，那么使用其复数形式来表示也可，例如 `mBooks`。
+> 注意：如果数据类型不确定的话，比如表示的是很多书，那么使用其复数形式来表示也可，例如 `books`。
 
 
 #### 3.6 参数名
@@ -1193,18 +1084,7 @@ AS 已帮你集成了一些注释模板，我们只需要直接使用即可，�
 
 ## 版本日志
 
-* 17/12/08: 新增组件化和三方库开发资源文件规范；
-* 17/12/05: 新增 logo；
-* 17/12/04: 完善按功能分包，修复 typo，定该版为完结版；
-* 17/12/03: 完善代码样式规范和测试规范；
-* 17/12/02: 新增代码样式规范；
-* 17/12/01: 对资源文件规范进行重构；
-* 17/11/29: 格式化中英混排；
-* 17/03/14: 包名划分为按功能划分；
-* 17/03/13: 新增其他注释；
-* 17/03/08: 规范排版，修复 typo 及新增一些规范；
-* 17/03/07: 修订目录排版，完善某些细节；
-* 17/03/06: 发布初版；
+* 18/06/08: fork from github 并做了部分修改
 
 
 
